@@ -9,11 +9,14 @@
     "source": { "type": "string" },
     "dataset_accession": { "type": "string" },
     "file_accession": { "type": "string" },
-    "sha256": { "type": "string" },
-    "blake3": { "type": ["string", "null"] },
-    "block_size": { "type": ["integer", "null"] },
-    "merkle_root": { "type": ["string", "null"] },
-    "verification_state": { "type": "string" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "blake3": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+    "block_size": { "type": ["integer", "null"], "minimum": 1 },
+    "merkle_root": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+    "verification_state": {
+      "type": "string",
+      "enum": ["official", "community_verified", "candidate", "conflict_candidate", "superseded", "historical"]
+    },
     "observations": { "type": "array" }
   },
   "additionalProperties": true

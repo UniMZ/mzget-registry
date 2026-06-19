@@ -18,7 +18,25 @@
     "checksum_source": { "type": ["string", "null"] },
     "public_locations": { "type": "array" },
     "preferred_download_url": { "type": ["string", "null"] },
-    "variants": { "type": "array" }
+    "variants": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["sha256", "verification_state"],
+        "properties": {
+          "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+          "blake3": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+          "block_size": { "type": ["integer", "null"], "minimum": 1 },
+          "merkle_root": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+          "verification_state": {
+            "type": "string",
+            "enum": ["official", "community_verified", "candidate", "conflict_candidate", "superseded", "historical"]
+          },
+          "observations": { "type": "array" }
+        },
+        "additionalProperties": true
+      }
+    }
   },
   "additionalProperties": true
 }

@@ -14,6 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
 OUTPUT = Path(os.environ.get("MZGET_REGISTRY_OUT", str(ROOT / "public")))
 BASE_URL = "https://registry.mzget.unimz.org"
+VARIANT_STATES = {
+    "official",
+    "community_verified",
+    "candidate",
+    "conflict_candidate",
+    "superseded",
+    "historical",
+}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -76,6 +84,45 @@ def validate_records(datasets: list[dict[str, Any]], files: list[dict[str, Any]]
         missing = [key for key in required if key not in record]
         if missing:
             raise SystemExit(f"file {record.get('file_accession')} missing {missing}")
+        validate_variants(record)
+
+
+def validate_variants(record: dict[str, Any]) -> None:
+    variants = record.get("variants", [])
+    if not isinstance(variants, list):
+        raise SystemExit(f"file {record.get('file_accession')} has non-array variants")
+
+    for index, variant in enumerate(variants):
+        if not isinstance(variant, dict):
+            raise SystemExit(
+                f"file {record.get('file_accession')} variant {index} is not an object"
+            )
+        state = variant.get("verification_state")
+        if state not in VARIANT_STATES:
+            raise SystemExit(
+                f"file {record.get('file_accession')} variant {index} has invalid verification_state {state!r}"
+            )
+        if not is_hex_digest(variant.get("sha256"), 64):
+            raise SystemExit(
+                f"file {record.get('file_accession')} variant {index} has invalid sha256"
+            )
+        for key in ["blake3", "merkle_root"]:
+            value = variant.get(key)
+            if value is not None and not is_hex_digest(value, 64):
+                raise SystemExit(
+                    f"file {record.get('file_accession')} variant {index} has invalid {key}"
+                )
+        block_size = variant.get("block_size")
+        if block_size is not None and (not isinstance(block_size, int) or block_size <= 0):
+            raise SystemExit(
+                f"file {record.get('file_accession')} variant {index} has invalid block_size"
+            )
+
+
+def is_hex_digest(value: Any, size: int) -> bool:
+    return isinstance(value, str) and len(value) == size and all(
+        char in "0123456789abcdefABCDEF" for char in value
+    )
 
 
 def registry_timestamp(datasets: list[dict[str, Any]]) -> int:
@@ -97,7 +144,16 @@ def prepare_output() -> None:
 
 
 
-def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], generated_at: int) -> str:
+def variant_count(files: list[dict[str, Any]]) -> int:
+    return sum(len(record.get("variants", [])) for record in files)
+
+
+def build_html(
+    datasets: list[dict[str, Any]],
+    files: list[dict[str, Any]],
+    variants: int,
+    generated_at: int,
+) -> str:
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -131,6 +187,7 @@ def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], gene
     <section class="metrics" aria-label="Registry metrics">
       <div class="metric"><span>Datasets</span><strong>{len(datasets)}</strong></div>
       <div class="metric"><span>Files</span><strong>{len(files)}</strong></div>
+      <div class="metric"><span>Variants</span><strong>{variants}</strong></div>
       <div class="metric"><span>Generated</span><strong>{generated_at}</strong></div>
     </section>
     <h2>Direct Lookup</h2>
@@ -154,19 +211,22 @@ def main() -> None:
     copy_json_tree(ROOT / "schema", OUTPUT / "schema")
 
     generated_at = registry_timestamp(datasets)
+    variants = variant_count(files)
     latest = {
         "schema_version": 1,
         "name": "MzGet Registry",
         "base_url": BASE_URL,
         "generated_at_unix_seconds": generated_at,
-        "counts": {"datasets": len(datasets), "files": len(files), "variants": 0},
+        "counts": {"datasets": len(datasets), "files": len(files), "variants": variants},
         "dataset_lookup": {
             "template": "datasets/{source_lower}/{bucket}/{accession}.json",
             "bucket_rule": "first six accession characters, e.g. PXD000 for PXD000001"
         },
     }
     write_json(OUTPUT / "latest.json", latest)
-    (OUTPUT / "index.html").write_text(build_html(datasets, files, generated_at), encoding="utf-8")
+    (OUTPUT / "index.html").write_text(
+        build_html(datasets, files, variants, generated_at), encoding="utf-8"
+    )
     cname = ROOT / "CNAME"
     if cname.exists():
         shutil.copy2(cname, OUTPUT / "CNAME")

@@ -44,3 +44,5 @@ https://registry.mzget.unimz.org/datasets/pride/PXD000/PXD000001.json
 The dataset record then lists the file records needed for verification and download planning. `latest.json` only advertises schema-level metadata and the deterministic path rule; it does not contain a global dataset list.
 
 File records are named from the original repository file name with a `.json` suffix, for example `sample.raw.json`. If a dataset contains duplicate file names, the importer appends a short `file_accession` suffix to avoid collisions.
+
+File records may include inline checksum variants. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
