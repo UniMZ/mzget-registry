@@ -18,6 +18,18 @@ def accession_bucket(accession: str) -> str:
     return accession
 
 
+def file_record_json_name(file_name: str, file_accession: str, used_names: set[str]) -> str:
+    safe_name = file_name.replace("/", "_")
+    candidate = f"{safe_name}.json"
+    if candidate not in used_names:
+        used_names.add(candidate)
+        return candidate
+
+    fallback = f"{safe_name}.{file_accession[:12]}.json"
+    used_names.add(fallback)
+    return fallback
+
+
 def write_json(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -29,11 +41,13 @@ def import_manifest(path: Path) -> None:
     accession = manifest["accession"]
     bucket = accession_bucket(accession)
     file_refs: list[str] = []
+    used_record_names: set[str] = set()
     total_size = 0
 
     for source_file in manifest.get("files", []):
         file_accession = source_file["file_accession"]
-        file_path = Path("files") / source / bucket / accession / f"{file_accession}.json"
+        record_name = file_record_json_name(source_file["file_name"], file_accession, used_record_names)
+        file_path = Path("files") / source / bucket / accession / record_name
         file_refs.append(str(file_path).replace("\\", "/"))
         size = source_file.get("file_size_bytes")
         if isinstance(size, int):

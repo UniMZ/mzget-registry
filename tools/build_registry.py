@@ -148,6 +148,7 @@ def main() -> None:
     datasets, files = load_records()
     validate_records(datasets, files)
     prepare_output()
+    (OUTPUT / ".nojekyll").write_text("", encoding="utf-8")
     copy_json_tree(DATA / "datasets", OUTPUT / "datasets")
     copy_json_tree(DATA / "files", OUTPUT / "files")
     copy_json_tree(ROOT / "schema", OUTPUT / "schema")
