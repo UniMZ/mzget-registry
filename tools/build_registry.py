@@ -22,6 +22,7 @@ VARIANT_STATES = {
     "superseded",
     "historical",
 }
+STRICT_VARIANT_STATES = {"official", "community_verified"}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -88,13 +89,16 @@ def validate_records(
         if missing:
             raise SystemExit(f"file {record.get('file_accession')} missing {missing}")
         validate_variants(record)
+    strict_sha256_by_file = validate_strict_variant_conflicts(files)
 
     for observation in observations:
-        validate_observation(observation, file_keys)
+        validate_observation(observation, file_keys, strict_sha256_by_file)
 
 
 def validate_observation(
-    observation: dict[str, Any], file_keys: set[tuple[str, str, str]]
+    observation: dict[str, Any],
+    file_keys: set[tuple[str, str, str]],
+    strict_sha256_by_file: dict[tuple[str, str, str], set[str]],
 ) -> None:
     required = [
         "schema_version",
@@ -119,6 +123,14 @@ def validate_observation(
         raise SystemExit(f"observation for {key} has invalid observed_at_unix_seconds")
     if not is_hex_digest(observation.get("sha256"), 64):
         raise SystemExit(f"observation for {key} has invalid sha256")
+    observed_sha256 = observation["sha256"].lower()
+    strict_sha256s = strict_sha256_by_file.get(key, set())
+    if strict_sha256s and observed_sha256 not in strict_sha256s:
+        state = observation.get("verification_state")
+        if state != "conflict_candidate":
+            raise SystemExit(
+                f"observation for {key} conflicts with trusted variant and must be marked conflict_candidate"
+            )
     blake3 = observation.get("blake3")
     if blake3 is not None and not is_hex_digest(blake3, 64):
         raise SystemExit(f"observation for {key} has invalid blake3")
@@ -154,6 +166,26 @@ def validate_variants(record: dict[str, Any]) -> None:
             raise SystemExit(
                 f"file {record.get('file_accession')} variant {index} has invalid block_size"
             )
+
+
+def validate_strict_variant_conflicts(
+    files: list[dict[str, Any]]
+) -> dict[tuple[str, str, str], set[str]]:
+    strict_sha256_by_file: dict[tuple[str, str, str], set[str]] = {}
+    for record in files:
+        key = (record["source"], record["dataset_accession"], record["file_accession"])
+        strict_sha256s = {
+            variant["sha256"].lower()
+            for variant in record.get("variants", [])
+            if variant.get("verification_state") in STRICT_VARIANT_STATES
+        }
+        if len(strict_sha256s) > 1:
+            raise SystemExit(
+                f"file {key} has conflicting official/community_verified sha256 variants"
+            )
+        if strict_sha256s:
+            strict_sha256_by_file[key] = strict_sha256s
+    return strict_sha256_by_file
 
 
 def is_hex_digest(value: Any, size: int) -> bool:

@@ -62,3 +62,5 @@ File records are named from the original repository file name with a `.json` suf
 File records may include inline checksum variants. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
 
 Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write.
+
+Validation rejects multiple current trusted variants (`official` or `community_verified`) for the same file. A pending observation that disagrees with an existing trusted variant must be explicitly marked `conflict_candidate`.
