@@ -1,0 +1,30 @@
+{
+  "category": "PEAK",
+  "category_name": "Peak list file URI",
+  "checksum": null,
+  "checksum_source": null,
+  "dataset_accession": "PXD000001",
+  "file_accession": "8ce43227bda837e3cad6c4fa1b11c4094291c48d76ca469c66e0a4e1efebd7e7",
+  "file_name": "TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML",
+  "preferred_download_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML",
+  "public_locations": [
+    {
+      "normalized_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML",
+      "protocol": "FTP Protocol",
+      "url": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
+    },
+    {
+      "normalized_url": null,
+      "protocol": "Aspera Protocol",
+      "url": "prd_ascp@fasp.ebi.ac.uk:pride/data/archive/2012/03/PXD000001/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML"
+    }
+  ],
+  "publication_date": "2012-03-07T00:00:00.000+00:00",
+  "repository_size_bytes": 243031280,
+  "repository_size_kind": "repository_reported",
+  "schema_version": 1,
+  "source": "PRIDE",
+  "submission_date": "2012-03-13T00:00:00.000+00:00",
+  "updated_date": "2017-06-20T14:57:06.000+00:00",
+  "variants": []
+}

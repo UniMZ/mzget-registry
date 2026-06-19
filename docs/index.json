@@ -1,0 +1,14 @@
+{
+  "base_url": "https://registry.mzget.unimz.org",
+  "datasets": [
+    {
+      "accession": "PXD000001",
+      "file_count": 8,
+      "path": "datasets/pride/PXD000/PXD000001.json",
+      "source": "PRIDE",
+      "total_size_bytes": 514278049
+    }
+  ],
+  "generated_at_unix_seconds": 1781873453,
+  "schema_version": 1
+}

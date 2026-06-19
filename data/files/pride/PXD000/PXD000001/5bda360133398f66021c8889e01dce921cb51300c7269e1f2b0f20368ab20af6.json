@@ -1,0 +1,30 @@
+{
+  "category": "OTHER",
+  "category_name": "Other type file URI",
+  "checksum": null,
+  "checksum_source": null,
+  "dataset_accession": "PXD000001",
+  "file_accession": "5bda360133398f66021c8889e01dce921cb51300c7269e1f2b0f20368ab20af6",
+  "file_name": "PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz",
+  "preferred_download_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/generated/PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz",
+  "public_locations": [
+    {
+      "normalized_url": "https://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/generated/PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz",
+      "protocol": "FTP Protocol",
+      "url": "ftp://ftp.pride.ebi.ac.uk/pride/data/archive/2012/03/PXD000001/generated/PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz"
+    },
+    {
+      "normalized_url": null,
+      "protocol": "Aspera Protocol",
+      "url": "prd_ascp@fasp.ebi.ac.uk:pride/data/archive/2012/03/PXD000001/generated/PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz"
+    }
+  ],
+  "publication_date": "2012-03-07T00:00:00.000+00:00",
+  "repository_size_bytes": 497985,
+  "repository_size_kind": "repository_reported",
+  "schema_version": 1,
+  "source": "PRIDE",
+  "submission_date": "2012-03-13T00:00:00.000+00:00",
+  "updated_date": "2017-06-20T14:57:06.000+00:00",
+  "variants": []
+}

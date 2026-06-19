@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MzGet Registry</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; color: #182026; background: #f7f8fa; }
+    header, main { max-width: 1120px; margin: 0 auto; padding: 24px; }
+    header { padding-top: 36px; }
+    h1 { margin: 0 0 8px; font-size: 28px; font-weight: 650; letter-spacing: 0; }
+    h2 { margin-top: 28px; font-size: 18px; }
+    p { margin: 0; color: #4f5b66; line-height: 1.5; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }
+    .metric { border: 1px solid #d9dee4; background: #fff; border-radius: 8px; padding: 14px 16px; }
+    .metric span { display: block; color: #6b7680; font-size: 13px; }
+    .metric strong { display: block; margin-top: 6px; font-size: 22px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9dee4; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #e7eaee; text-align: left; font-size: 14px; }
+    th { color: #4f5b66; background: #eef1f4; font-weight: 600; }
+    a { color: #0b5cad; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { background: #eef1f4; border-radius: 4px; padding: 2px 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MzGet Registry</h1>
+    <p>Static integrity metadata for public mass spectrometry datasets.</p>
+  </header>
+  <main>
+    <section class="metrics" aria-label="Registry metrics">
+      <div class="metric"><span>Datasets</span><strong>1</strong></div>
+      <div class="metric"><span>Files</span><strong>8</strong></div>
+      <div class="metric"><span>Generated</span><strong>1781873453</strong></div>
+    </section>
+    <p>Machine-readable entry points: <a href="latest.json"><code>latest.json</code></a>, <a href="index.json"><code>index.json</code></a>, and <a href="snapshots/registry.sqlite"><code>registry.sqlite</code></a>.</p>
+    <h2>Datasets</h2>
+    <table>
+      <thead><tr><th>Source</th><th>Accession</th><th>Files</th><th>Repository Size Bytes</th></tr></thead>
+      <tbody>
+        <tr><td>PRIDE</td><td><a href="datasets/pride/PXD000/PXD000001.json">PXD000001</a></td><td>8</td><td>514278049</td></tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>
