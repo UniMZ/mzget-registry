@@ -25,6 +25,12 @@ python3 tools/build_registry.py
 
 The `public/` directory is generated and ignored on `main`. GitHub Actions publishes it to the `gh-pages` branch.
 
+Validate source records and generated Pages output:
+
+```bash
+python3 tools/validate_registry.py
+```
+
 Import a PRIDE project manifest produced by MzGet:
 
 ```bash
