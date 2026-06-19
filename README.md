@@ -47,6 +47,15 @@ python3 tools/import_observations.py /tmp/observations.json
 python3 tools/build_registry.py
 ```
 
+After review, promote a pending observation into a checksum variant:
+
+```bash
+python3 tools/promote_observation.py \
+  data/observations/pending/pride/PXD000/PXD000001/<file_accession>/<observation>.json \
+  --state candidate
+python3 tools/build_registry.py
+```
+
 ## Lookup Model
 
 The registry does not require a global dataset index for normal downloads. A client that knows the accession can compute the dataset URL directly. For example, `PXD000001` is stored under the bucket `PXD000`:

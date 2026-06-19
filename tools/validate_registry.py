@@ -28,6 +28,14 @@ def validate_json_tree(path: Path) -> int:
     return count
 
 
+def validate_python_tools() -> int:
+    count = 0
+    for path in sorted((ROOT / "tools").glob("*.py")):
+        compile(path.read_text(encoding="utf-8"), str(path.relative_to(ROOT)), "exec")
+        count += 1
+    return count
+
+
 def run_build(output: Path) -> None:
     env = os.environ.copy()
     env["MZGET_REGISTRY_OUT"] = str(output)
@@ -63,13 +71,16 @@ def validate_pages_output(output: Path) -> None:
 def main() -> None:
     schema_count = validate_json_tree(ROOT / "schema")
     data_count = validate_json_tree(ROOT / "data")
+    tool_count = validate_python_tools()
 
     with tempfile.TemporaryDirectory(prefix="mzget-registry-") as tmp:
         output = Path(tmp) / "public"
         run_build(output)
         validate_pages_output(output)
 
-    print(f"validated {schema_count} schema JSON file(s) and {data_count} data JSON file(s)")
+    print(
+        f"validated {schema_count} schema JSON file(s), {data_count} data JSON file(s), and {tool_count} Python tool(s)"
+    )
 
 
 if __name__ == "__main__":
