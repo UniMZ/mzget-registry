@@ -5,14 +5,14 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import shutil
-import sqlite3
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-DOCS = ROOT / "docs"
+OUTPUT = Path(os.environ.get("MZGET_REGISTRY_OUT", str(ROOT / "public")))
 BASE_URL = "https://registry.mzget.unimz.org"
 
 
@@ -87,79 +87,13 @@ def registry_timestamp(datasets: list[dict[str, Any]]) -> int:
     return max(values) if values else 0
 
 
-def build_sqlite(path: Path, datasets: list[dict[str, Any]], files: list[dict[str, Any]], generated_at: int) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if path.exists():
-        path.unlink()
-    connection = sqlite3.connect(path)
-    try:
-        connection.execute("create table metadata (key text primary key, value text not null)")
-        connection.execute(
-            """
-            create table datasets (
-                source text not null,
-                accession text not null,
-                file_count integer not null,
-                total_size_bytes integer not null,
-                path text not null,
-                primary key (source, accession)
-            )
-            """
-        )
-        connection.execute(
-            """
-            create table files (
-                source text not null,
-                dataset_accession text not null,
-                file_accession text not null,
-                file_name text not null,
-                category text,
-                repository_size_bytes integer,
-                checksum text,
-                checksum_source text,
-                preferred_download_url text,
-                updated_date text,
-                path text not null,
-                primary key (source, dataset_accession, file_accession)
-            )
-            """
-        )
-        connection.execute("create index files_dataset_idx on files (source, dataset_accession)")
-        connection.execute("insert into metadata values (?, ?)", ("generated_at_unix_seconds", str(generated_at)))
-        connection.execute("insert into metadata values (?, ?)", ("base_url", BASE_URL))
 
-        for dataset in datasets:
-            source = dataset["source"].lower()
-            bucket = accession_bucket(dataset["accession"])
-            path_value = f"datasets/{source}/{bucket}/{dataset['accession']}.json"
-            connection.execute(
-                "insert into datasets values (?, ?, ?, ?, ?)",
-                (dataset["source"], dataset["accession"], dataset["file_count"], dataset.get("total_size_bytes", 0), path_value),
-            )
-
-        for record in files:
-            source = record["source"].lower()
-            bucket = accession_bucket(record["dataset_accession"])
-            path_value = f"files/{source}/{bucket}/{record['dataset_accession']}/{record['file_accession']}.json"
-            connection.execute(
-                "insert into files values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    record["source"],
-                    record["dataset_accession"],
-                    record["file_accession"],
-                    record["file_name"],
-                    record.get("category"),
-                    record.get("repository_size_bytes"),
-                    record.get("checksum"),
-                    record.get("checksum_source"),
-                    record.get("preferred_download_url"),
-                    record.get("updated_date"),
-                    path_value,
-                ),
-            )
-        connection.commit()
-    finally:
-        connection.close()
+def prepare_output() -> None:
+    if OUTPUT.resolve() == ROOT.resolve():
+        raise SystemExit("refusing to use repository root as build output")
+    if OUTPUT.exists():
+        shutil.rmtree(OUTPUT)
+    OUTPUT.mkdir(parents=True, exist_ok=True)
 
 
 def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], generated_at: int) -> str:
@@ -212,7 +146,7 @@ def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], gene
       <div class="metric"><span>Files</span><strong>{len(files)}</strong></div>
       <div class="metric"><span>Generated</span><strong>{generated_at}</strong></div>
     </section>
-    <p>Machine-readable entry points: <a href="latest.json"><code>latest.json</code></a>, <a href="index.json"><code>index.json</code></a>, and <a href="snapshots/registry.sqlite"><code>registry.sqlite</code></a>.</p>
+    <p>Machine-readable entry points: <a href="latest.json"><code>latest.json</code></a>, <a href="index.json"><code>index.json</code></a>, per-dataset JSON files, and <a href="snapshots/registry.json"><code>registry.json</code></a>.</p>
     <h2>Datasets</h2>
     <table>
       <thead><tr><th>Source</th><th>Accession</th><th>Files</th><th>Repository Size Bytes</th></tr></thead>
@@ -229,10 +163,10 @@ def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], gene
 def main() -> None:
     datasets, files = load_records()
     validate_records(datasets, files)
-    DOCS.mkdir(parents=True, exist_ok=True)
-    copy_json_tree(DATA / "datasets", DOCS / "datasets")
-    copy_json_tree(DATA / "files", DOCS / "files")
-    copy_json_tree(ROOT / "schema", DOCS / "schema")
+    prepare_output()
+    copy_json_tree(DATA / "datasets", OUTPUT / "datasets")
+    copy_json_tree(DATA / "files", OUTPUT / "files")
+    copy_json_tree(ROOT / "schema", OUTPUT / "schema")
 
     generated_at = registry_timestamp(datasets)
     snapshot = {
@@ -244,20 +178,19 @@ def main() -> None:
         "datasets": datasets,
         "files": files,
     }
-    write_json(DOCS / "snapshots" / "registry.json", snapshot)
-    build_sqlite(DOCS / "snapshots" / "registry.sqlite", datasets, files, generated_at)
+    write_json(OUTPUT / "snapshots" / "registry.json", snapshot)
     latest = {
         "schema_version": 1,
         "name": "MzGet Registry",
         "base_url": BASE_URL,
         "generated_at_unix_seconds": generated_at,
         "counts": snapshot["counts"],
-        "snapshots": {"json": "snapshots/registry.json", "sqlite": "snapshots/registry.sqlite"},
+        "snapshots": {"json": "snapshots/registry.json"},
         "index": "index.json",
     }
-    write_json(DOCS / "latest.json", latest)
+    write_json(OUTPUT / "latest.json", latest)
     write_json(
-        DOCS / "index.json",
+        OUTPUT / "index.json",
         {
             "schema_version": 1,
             "base_url": BASE_URL,
@@ -274,10 +207,10 @@ def main() -> None:
             ],
         },
     )
-    (DOCS / "index.html").write_text(build_html(datasets, files, generated_at), encoding="utf-8")
+    (OUTPUT / "index.html").write_text(build_html(datasets, files, generated_at), encoding="utf-8")
     cname = ROOT / "CNAME"
     if cname.exists():
-        shutil.copy2(cname, DOCS / "CNAME")
+        shutil.copy2(cname, OUTPUT / "CNAME")
 
 
 if __name__ == "__main__":
