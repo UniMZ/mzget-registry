@@ -96,19 +96,8 @@ def prepare_output() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
 
 
+
 def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], generated_at: int) -> str:
-    rows = []
-    for dataset in datasets:
-        dataset_path = f"datasets/{dataset['source'].lower()}/{accession_bucket(dataset['accession'])}/{dataset['accession']}.json"
-        rows.append(
-            "<tr>"
-            f"<td>{html.escape(dataset['source'])}</td>"
-            f"<td><a href=\"{dataset_path}\">{html.escape(dataset['accession'])}</a></td>"
-            f"<td>{dataset['file_count']}</td>"
-            f"<td>{dataset.get('total_size_bytes', 0)}</td>"
-            "</tr>"
-        )
-    rows_html = "\n".join(rows)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -118,21 +107,19 @@ def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], gene
   <style>
     :root {{ color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }}
     body {{ margin: 0; color: #182026; background: #f7f8fa; }}
-    header, main {{ max-width: 1120px; margin: 0 auto; padding: 24px; }}
+    header, main {{ max-width: 920px; margin: 0 auto; padding: 24px; }}
     header {{ padding-top: 36px; }}
     h1 {{ margin: 0 0 8px; font-size: 28px; font-weight: 650; letter-spacing: 0; }}
     h2 {{ margin-top: 28px; font-size: 18px; }}
-    p {{ margin: 0; color: #4f5b66; line-height: 1.5; }}
+    p {{ margin: 0 0 14px; color: #4f5b66; line-height: 1.5; }}
     .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }}
     .metric {{ border: 1px solid #d9dee4; background: #fff; border-radius: 8px; padding: 14px 16px; }}
     .metric span {{ display: block; color: #6b7680; font-size: 13px; }}
     .metric strong {{ display: block; margin-top: 6px; font-size: 22px; }}
-    table {{ width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d9dee4; }}
-    th, td {{ padding: 10px 12px; border-bottom: 1px solid #e7eaee; text-align: left; font-size: 14px; }}
-    th {{ color: #4f5b66; background: #eef1f4; font-weight: 600; }}
+    pre {{ overflow-x: auto; background: #fff; border: 1px solid #d9dee4; border-radius: 8px; padding: 14px 16px; }}
+    code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }}
     a {{ color: #0b5cad; text-decoration: none; }}
     a:hover {{ text-decoration: underline; }}
-    code {{ background: #eef1f4; border-radius: 4px; padding: 2px 5px; }}
   </style>
 </head>
 <body>
@@ -146,14 +133,11 @@ def build_html(datasets: list[dict[str, Any]], files: list[dict[str, Any]], gene
       <div class="metric"><span>Files</span><strong>{len(files)}</strong></div>
       <div class="metric"><span>Generated</span><strong>{generated_at}</strong></div>
     </section>
-    <p>Machine-readable entry points: <a href="latest.json"><code>latest.json</code></a>, <a href="index.json"><code>index.json</code></a>, per-dataset JSON files, and <a href="snapshots/registry.json"><code>registry.json</code></a>.</p>
-    <h2>Datasets</h2>
-    <table>
-      <thead><tr><th>Source</th><th>Accession</th><th>Files</th><th>Repository Size Bytes</th></tr></thead>
-      <tbody>
-        {rows_html}
-      </tbody>
-    </table>
+    <h2>Direct Lookup</h2>
+    <p>MzGet clients compute dataset metadata URLs directly from the accession. No global dataset index is required for normal downloads.</p>
+    <pre><code>https://registry.mzget.unimz.org/datasets/pride/PXD000/PXD000001.json</code></pre>
+    <p>The bucket is the first six accession characters, for example <code>PXD000</code> for <code>PXD000001</code>.</p>
+    <p>Registry metadata: <a href="latest.json"><code>latest.json</code></a>.</p>
   </main>
 </body>
 </html>
@@ -169,44 +153,18 @@ def main() -> None:
     copy_json_tree(ROOT / "schema", OUTPUT / "schema")
 
     generated_at = registry_timestamp(datasets)
-    snapshot = {
-        "schema_version": 1,
-        "name": "MzGet Registry",
-        "base_url": BASE_URL,
-        "generated_at_unix_seconds": generated_at,
-        "counts": {"datasets": len(datasets), "files": len(files), "variants": 0},
-        "datasets": datasets,
-        "files": files,
-    }
-    write_json(OUTPUT / "snapshots" / "registry.json", snapshot)
     latest = {
         "schema_version": 1,
         "name": "MzGet Registry",
         "base_url": BASE_URL,
         "generated_at_unix_seconds": generated_at,
-        "counts": snapshot["counts"],
-        "snapshots": {"json": "snapshots/registry.json"},
-        "index": "index.json",
+        "counts": {"datasets": len(datasets), "files": len(files), "variants": 0},
+        "dataset_lookup": {
+            "template": "datasets/{source_lower}/{bucket}/{accession}.json",
+            "bucket_rule": "first six accession characters, e.g. PXD000 for PXD000001"
+        },
     }
     write_json(OUTPUT / "latest.json", latest)
-    write_json(
-        OUTPUT / "index.json",
-        {
-            "schema_version": 1,
-            "base_url": BASE_URL,
-            "generated_at_unix_seconds": generated_at,
-            "datasets": [
-                {
-                    "source": dataset["source"],
-                    "accession": dataset["accession"],
-                    "file_count": dataset["file_count"],
-                    "total_size_bytes": dataset.get("total_size_bytes", 0),
-                    "path": f"datasets/{dataset['source'].lower()}/{accession_bucket(dataset['accession'])}/{dataset['accession']}.json",
-                }
-                for dataset in datasets
-            ],
-        },
-    )
     (OUTPUT / "index.html").write_text(build_html(datasets, files, generated_at), encoding="utf-8")
     cname = ROOT / "CNAME"
     if cname.exists():
