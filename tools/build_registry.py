@@ -48,13 +48,16 @@ def accession_bucket(accession: str) -> str:
     return accession
 
 
-def load_records() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def load_records() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     datasets = [read_json(path) for path in sorted((DATA / "datasets").rglob("*.json"))]
     files = [read_json(path) for path in sorted((DATA / "files").rglob("*.json"))]
-    return datasets, files
+    observations = [read_json(path) for path in sorted((DATA / "observations").rglob("*.json"))]
+    return datasets, files, observations
 
 
-def validate_records(datasets: list[dict[str, Any]], files: list[dict[str, Any]]) -> None:
+def validate_records(
+    datasets: list[dict[str, Any]], files: list[dict[str, Any]], observations: list[dict[str, Any]]
+) -> None:
     file_keys = {
         (record["source"], record["dataset_accession"], record["file_accession"])
         for record in files
@@ -85,6 +88,40 @@ def validate_records(datasets: list[dict[str, Any]], files: list[dict[str, Any]]
         if missing:
             raise SystemExit(f"file {record.get('file_accession')} missing {missing}")
         validate_variants(record)
+
+    for observation in observations:
+        validate_observation(observation, file_keys)
+
+
+def validate_observation(
+    observation: dict[str, Any], file_keys: set[tuple[str, str, str]]
+) -> None:
+    required = [
+        "schema_version",
+        "source",
+        "dataset_accession",
+        "file_accession",
+        "observed_at_unix_seconds",
+        "sha256",
+    ]
+    missing = [key for key in required if key not in observation]
+    if missing:
+        raise SystemExit(f"observation missing {missing}")
+
+    key = (
+        observation["source"],
+        observation["dataset_accession"],
+        observation["file_accession"],
+    )
+    if key not in file_keys:
+        raise SystemExit(f"observation references missing file {key}")
+    if not isinstance(observation["observed_at_unix_seconds"], int):
+        raise SystemExit(f"observation for {key} has invalid observed_at_unix_seconds")
+    if not is_hex_digest(observation.get("sha256"), 64):
+        raise SystemExit(f"observation for {key} has invalid sha256")
+    blake3 = observation.get("blake3")
+    if blake3 is not None and not is_hex_digest(blake3, 64):
+        raise SystemExit(f"observation for {key} has invalid blake3")
 
 
 def validate_variants(record: dict[str, Any]) -> None:
@@ -152,6 +189,7 @@ def build_html(
     datasets: list[dict[str, Any]],
     files: list[dict[str, Any]],
     variants: int,
+    observations: int,
     generated_at: int,
 ) -> str:
     return f"""<!doctype html>
@@ -188,6 +226,7 @@ def build_html(
       <div class="metric"><span>Datasets</span><strong>{len(datasets)}</strong></div>
       <div class="metric"><span>Files</span><strong>{len(files)}</strong></div>
       <div class="metric"><span>Variants</span><strong>{variants}</strong></div>
+      <div class="metric"><span>Observations</span><strong>{observations}</strong></div>
       <div class="metric"><span>Generated</span><strong>{generated_at}</strong></div>
     </section>
     <h2>Direct Lookup</h2>
@@ -202,12 +241,13 @@ def build_html(
 
 
 def main() -> None:
-    datasets, files = load_records()
-    validate_records(datasets, files)
+    datasets, files, observations = load_records()
+    validate_records(datasets, files, observations)
     prepare_output()
     (OUTPUT / ".nojekyll").write_text("", encoding="utf-8")
     copy_json_tree(DATA / "datasets", OUTPUT / "datasets")
     copy_json_tree(DATA / "files", OUTPUT / "files")
+    copy_json_tree(DATA / "observations", OUTPUT / "observations")
     copy_json_tree(ROOT / "schema", OUTPUT / "schema")
 
     generated_at = registry_timestamp(datasets)
@@ -217,7 +257,12 @@ def main() -> None:
         "name": "MzGet Registry",
         "base_url": BASE_URL,
         "generated_at_unix_seconds": generated_at,
-        "counts": {"datasets": len(datasets), "files": len(files), "variants": variants},
+        "counts": {
+            "datasets": len(datasets),
+            "files": len(files),
+            "variants": variants,
+            "observations": len(observations),
+        },
         "dataset_lookup": {
             "template": "datasets/{source_lower}/{bucket}/{accession}.json",
             "bucket_rule": "first six accession characters, e.g. PXD000 for PXD000001"
@@ -225,7 +270,7 @@ def main() -> None:
     }
     write_json(OUTPUT / "latest.json", latest)
     (OUTPUT / "index.html").write_text(
-        build_html(datasets, files, variants, generated_at), encoding="utf-8"
+        build_html(datasets, files, variants, len(observations), generated_at), encoding="utf-8"
     )
     cname = ROOT / "CNAME"
     if cname.exists():
