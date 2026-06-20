@@ -42,6 +42,16 @@ def trusted_sha256s(record: dict[str, Any]) -> set[str]:
     }
 
 
+def independent_submitters(entries: list[tuple[Path, dict[str, Any]]]) -> list[str]:
+    return sorted(
+        {
+            observation.get("submitter")
+            for _, observation in entries
+            if observation.get("submitter")
+        }
+    )
+
+
 def observation_report(quorum: int) -> dict[str, Any]:
     files = load_file_records()
     observations = load_pending_observations()
@@ -65,9 +75,10 @@ def observation_report(quorum: int) -> dict[str, Any]:
             recommendation = "matches_trusted"
         elif trusted:
             recommendation = "conflict_candidate"
-        elif len(entries) >= quorum:
+        submitters = independent_submitters(entries)
+        if not trusted and len(submitters) >= quorum:
             recommendation = "quorum_candidate"
-        else:
+        elif not trusted:
             recommendation = "candidate"
 
         observed_times = [
@@ -75,13 +86,6 @@ def observation_report(quorum: int) -> dict[str, Any]:
             for _, observation in entries
             if isinstance(observation.get("observed_at_unix_seconds"), int)
         ]
-        submitters = sorted(
-            {
-                observation.get("submitter")
-                for _, observation in entries
-                if observation.get("submitter")
-            }
-        )
         group_reports.append(
             {
                 "source": source,
@@ -90,6 +94,7 @@ def observation_report(quorum: int) -> dict[str, Any]:
                 "file_name": file_record.get("file_name"),
                 "sha256": sha256,
                 "observations": len(entries),
+                "independent_submitters": len(submitters),
                 "submitters": submitters,
                 "first_observed_at_unix_seconds": min(observed_times) if observed_times else None,
                 "last_observed_at_unix_seconds": max(observed_times) if observed_times else None,
@@ -122,6 +127,7 @@ def print_text(report: dict[str, Any]) -> None:
                     group["dataset_accession"],
                     group["file_accession"],
                     str(group["observations"]),
+                    str(group["independent_submitters"]),
                     group["sha256"],
                     group.get("file_name") or "-",
                 ]

@@ -64,6 +64,16 @@ python3 tools/promote_observation.py \
 python3 tools/build_registry.py
 ```
 
+To promote a checksum to `community_verified`, use a quorum of independent submitters. The quorum count is based on distinct `submitter` values in matching pending observations:
+
+```bash
+python3 tools/promote_observation.py \
+  data/observations/pending/pride/PXD000/PXD000001/<file_accession>/<observation>.json \
+  --state community_verified \
+  --quorum 2 \
+  --update-existing
+```
+
 ## Lookup Model
 
 The registry does not require a global dataset index for normal downloads. A client that knows the accession can compute the dataset URL directly. For example, `PXD000001` is stored under the bucket `PXD000`:
@@ -78,6 +88,6 @@ File records are named from the original repository file name with a `.json` suf
 
 File records may include inline checksum variants. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
 
-Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write.
+Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write. `community_verified` promotion requires the configured quorum of distinct submitters.
 
 Validation rejects multiple current trusted variants (`official` or `community_verified`) for the same file. A pending observation that disagrees with an existing trusted variant must be explicitly marked `conflict_candidate`.

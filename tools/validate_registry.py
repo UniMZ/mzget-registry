@@ -47,6 +47,14 @@ def run_build(output: Path) -> None:
     )
 
 
+def run_tool_tests() -> None:
+    subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "test_registry_tools.py")],
+        cwd=ROOT,
+        check=True,
+    )
+
+
 def validate_pages_output(output: Path) -> None:
     latest = read_json(output / "latest.json")
     counts = latest.get("counts", {})
@@ -72,6 +80,7 @@ def main() -> None:
     schema_count = validate_json_tree(ROOT / "schema")
     data_count = validate_json_tree(ROOT / "data")
     tool_count = validate_python_tools()
+    run_tool_tests()
 
     with tempfile.TemporaryDirectory(prefix="mzget-registry-") as tmp:
         output = Path(tmp) / "public"

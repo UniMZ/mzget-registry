@@ -21,6 +21,15 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def observation_key(observation: dict[str, Any]) -> tuple[str, str, str, str]:
+    return (
+        observation["source"],
+        observation["dataset_accession"],
+        observation["file_accession"],
+        observation["sha256"].lower(),
+    )
+
+
 def find_file_record(observation: dict[str, Any]) -> Path:
     source = observation["source"]
     dataset_accession = observation["dataset_accession"]
@@ -54,14 +63,14 @@ def observation_ref(path: Path) -> str:
         return str(path)
 
 
-def build_variant(observation: dict[str, Any], state: str, ref: str) -> dict[str, Any]:
+def build_variant(observation: dict[str, Any], state: str, refs: list[str]) -> dict[str, Any]:
     variant = {
         "sha256": observation["sha256"].lower(),
         "blake3": lower_or_none(observation.get("blake3")),
         "block_size": observation.get("block_size"),
         "merkle_root": lower_or_none(observation.get("merkle_root")),
         "verification_state": state,
-        "observations": [ref],
+        "observations": refs,
     }
     return {key: value for key, value in variant.items() if value is not None}
 
@@ -72,7 +81,47 @@ def lower_or_none(value: Any) -> Any:
     return value
 
 
-def promote_observation(path: Path, state: str, update_existing: bool) -> None:
+def matching_pending_observations(
+    observation: dict[str, Any]
+) -> list[tuple[Path, dict[str, Any]]]:
+    pending = DATA / "observations" / "pending"
+    if not pending.exists():
+        return []
+
+    key = observation_key(observation)
+    matches = []
+    for candidate_path in sorted(pending.rglob("*.json")):
+        candidate = read_json(candidate_path)
+        if observation_key(candidate) == key:
+            matches.append((candidate_path, candidate))
+    return matches
+
+
+def independent_submitters(entries: list[tuple[Path, dict[str, Any]]]) -> list[str]:
+    return sorted(
+        {
+            observation.get("submitter")
+            for _, observation in entries
+            if observation.get("submitter")
+        }
+    )
+
+
+def quorum_refs(observation: dict[str, Any], quorum: int) -> list[str]:
+    if quorum < 1:
+        raise SystemExit("quorum must be greater than zero")
+
+    matches = matching_pending_observations(observation)
+    submitters = independent_submitters(matches)
+    if len(submitters) < quorum:
+        raise SystemExit(
+            "community_verified requires at least "
+            f"{quorum} independent submitter(s); found {len(submitters)}"
+        )
+    return [observation_ref(path) for path, _ in matches]
+
+
+def promote_observation(path: Path, state: str, update_existing: bool, quorum: int) -> None:
     if state not in PROMOTABLE_STATES:
         raise SystemExit(f"state must be one of {sorted(PROMOTABLE_STATES)}")
 
@@ -80,21 +129,26 @@ def promote_observation(path: Path, state: str, update_existing: bool) -> None:
     file_path = find_file_record(observation)
     record = read_json(file_path)
     variants = record.setdefault("variants", [])
-    ref = observation_ref(path)
+    refs = (
+        quorum_refs(observation, quorum)
+        if state == "community_verified"
+        else [observation_ref(path)]
+    )
     sha256 = observation["sha256"].lower()
 
     for variant in variants:
         if variant.get("sha256", "").lower() == sha256:
             observations = variant.setdefault("observations", [])
-            if ref not in observations:
-                observations.append(ref)
+            for ref in refs:
+                if ref not in observations:
+                    observations.append(ref)
             if update_existing:
                 variant["verification_state"] = state
             write_json(file_path, record)
             print(f"updated {file_path.relative_to(ROOT)}")
             return
 
-    variants.append(build_variant(observation, state, ref))
+    variants.append(build_variant(observation, state, refs))
     write_json(file_path, record)
     print(f"updated {file_path.relative_to(ROOT)}")
 
@@ -113,8 +167,14 @@ def main() -> None:
         action="store_true",
         help="update verification_state when a variant with the same sha256 already exists",
     )
+    parser.add_argument(
+        "--quorum",
+        type=int,
+        default=2,
+        help="minimum independent submitters required for community_verified",
+    )
     args = parser.parse_args()
-    promote_observation(args.observation, args.state, args.update_existing)
+    promote_observation(args.observation, args.state, args.update_existing, args.quorum)
 
 
 if __name__ == "__main__":
