@@ -50,6 +50,7 @@ python3 tools/build_registry.py
 After review, promote a pending observation into a checksum variant:
 
 ```bash
+python3 tools/report_observations.py
 python3 tools/promote_observation.py \
   data/observations/pending/pride/PXD000/PXD000001/<file_accession>/<observation>.json \
   --state candidate
