@@ -64,6 +64,8 @@ python3 tools/promote_observation.py \
 python3 tools/build_registry.py
 ```
 
+Promotion moves reviewed observation files from `data/observations/pending/` to `data/observations/reviewed/` by default, so `report_observations.py` only lists observations still awaiting review. Use `--keep-pending` only when debugging a promotion locally.
+
 To promote a checksum to `community_verified`, use a quorum of independent submitters. The quorum count is based on distinct `submitter` values in matching pending observations:
 
 ```bash
@@ -88,6 +90,6 @@ File records are named from the original repository file name with a `.json` suf
 
 File records may include inline checksum variants. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
 
-Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write. `community_verified` promotion requires the configured quorum of distinct submitters.
+Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Reviewed observations are archived under `data/observations/reviewed/` and referenced by file variants. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write. `community_verified` promotion requires the configured quorum of distinct submitters.
 
 Validation rejects multiple current trusted variants (`official` or `community_verified`) for the same file. A pending observation that disagrees with an existing trusted variant must be explicitly marked `conflict_candidate`.

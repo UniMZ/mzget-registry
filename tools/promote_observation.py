@@ -63,6 +63,37 @@ def observation_ref(path: Path) -> str:
         return str(path)
 
 
+def reviewed_observation_path(path: Path) -> Path:
+    pending = DATA / "observations" / "pending"
+    reviewed = DATA / "observations" / "reviewed"
+    try:
+        relative = path.resolve().relative_to(pending.resolve())
+    except ValueError:
+        return path
+    return reviewed / relative
+
+
+def archive_observations(paths: list[Path]) -> list[Path]:
+    archived = []
+    for path in paths:
+        target = reviewed_observation_path(path)
+        if target == path:
+            archived.append(path)
+            continue
+
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists():
+            if target.read_bytes() != path.read_bytes():
+                raise SystemExit(
+                    f"reviewed observation already exists with different content: {target}"
+                )
+            path.unlink()
+        else:
+            path.rename(target)
+        archived.append(target)
+    return archived
+
+
 def build_variant(observation: dict[str, Any], state: str, refs: list[str]) -> dict[str, Any]:
     variant = {
         "sha256": observation["sha256"].lower(),
@@ -107,7 +138,7 @@ def independent_submitters(entries: list[tuple[Path, dict[str, Any]]]) -> list[s
     )
 
 
-def quorum_refs(observation: dict[str, Any], quorum: int) -> list[str]:
+def quorum_paths(observation: dict[str, Any], quorum: int) -> list[Path]:
     if quorum < 1:
         raise SystemExit("quorum must be greater than zero")
 
@@ -118,10 +149,12 @@ def quorum_refs(observation: dict[str, Any], quorum: int) -> list[str]:
             "community_verified requires at least "
             f"{quorum} independent submitter(s); found {len(submitters)}"
         )
-    return [observation_ref(path) for path, _ in matches]
+    return [path for path, _ in matches]
 
 
-def promote_observation(path: Path, state: str, update_existing: bool, quorum: int) -> None:
+def promote_observation(
+    path: Path, state: str, update_existing: bool, quorum: int, keep_pending: bool
+) -> None:
     if state not in PROMOTABLE_STATES:
         raise SystemExit(f"state must be one of {sorted(PROMOTABLE_STATES)}")
 
@@ -129,11 +162,13 @@ def promote_observation(path: Path, state: str, update_existing: bool, quorum: i
     file_path = find_file_record(observation)
     record = read_json(file_path)
     variants = record.setdefault("variants", [])
-    refs = (
-        quorum_refs(observation, quorum)
+    observation_paths = (
+        quorum_paths(observation, quorum)
         if state == "community_verified"
-        else [observation_ref(path)]
+        else [path]
     )
+    ref_paths = observation_paths if keep_pending else archive_observations(observation_paths)
+    refs = [observation_ref(path) for path in ref_paths]
     sha256 = observation["sha256"].lower()
 
     for variant in variants:
@@ -173,8 +208,19 @@ def main() -> None:
         default=2,
         help="minimum independent submitters required for community_verified",
     )
+    parser.add_argument(
+        "--keep-pending",
+        action="store_true",
+        help="leave promoted observations under data/observations/pending",
+    )
     args = parser.parse_args()
-    promote_observation(args.observation, args.state, args.update_existing, args.quorum)
+    promote_observation(
+        args.observation,
+        args.state,
+        args.update_existing,
+        args.quorum,
+        args.keep_pending,
+    )
 
 
 if __name__ == "__main__":

@@ -115,7 +115,11 @@ def test_promote_community_verified_enforces_quorum() -> None:
         try:
             with redirect_stdout(StringIO()):
                 promote_observation.promote_observation(
-                    first, "community_verified", update_existing=False, quorum=2
+                    first,
+                    "community_verified",
+                    update_existing=False,
+                    quorum=2,
+                    keep_pending=False,
                 )
         except SystemExit as error:
             assert "requires at least 2" in str(error)
@@ -125,7 +129,11 @@ def test_promote_community_verified_enforces_quorum() -> None:
         write_observation(root, "bob", 2)
         with redirect_stdout(StringIO()):
             promote_observation.promote_observation(
-                first, "community_verified", update_existing=False, quorum=2
+                first,
+                "community_verified",
+                update_existing=False,
+                quorum=2,
+                keep_pending=False,
             )
 
         record = read_json(file_record)
@@ -133,6 +141,9 @@ def test_promote_community_verified_enforces_quorum() -> None:
         variant = record["variants"][0]
         assert variant["verification_state"] == "community_verified"
         assert len(variant["observations"]) == 2
+        assert all("/reviewed/" in observation for observation in variant["observations"])
+        assert not first.exists()
+        assert report_observations.observation_report(quorum=2)["pending_observations"] == 0
 
 
 def main() -> None:
