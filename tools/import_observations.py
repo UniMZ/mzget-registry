@@ -56,6 +56,23 @@ def validate_observation(observation: dict[str, Any]) -> None:
     blake3 = observation.get("blake3")
     if blake3 is not None and not is_hex_digest(blake3, 64):
         raise SystemExit("observation has invalid blake3")
+    validate_blocks(observation)
+
+
+def validate_blocks(observation: dict[str, Any]) -> None:
+    blocks = observation.get("blocks")
+    if blocks is None:
+        return
+    if not isinstance(blocks, list):
+        raise SystemExit("observation has non-array blocks")
+    if observation.get("block_hash_algorithm") not in (None, "blake3"):
+        raise SystemExit("observation has invalid block_hash_algorithm")
+    block_size = observation.get("block_size")
+    if not isinstance(block_size, int) or block_size <= 0:
+        raise SystemExit("observation has blocks but invalid block_size")
+    for index, block in enumerate(blocks):
+        if not is_hex_digest(block, 64):
+            raise SystemExit(f"observation has invalid block hash at index {index}")
 
 
 def is_hex_digest(value: Any, size: int) -> bool:

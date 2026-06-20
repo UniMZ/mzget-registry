@@ -15,6 +15,8 @@ import report_observations
 
 SHA256 = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 BLAKE3 = "ea8f163db38682925e4491c5e58d4bb3506a940bcbbf6f14e45344b721d16c27"
+BLOCK_1 = "6d227a88f75cd8f49286c6140cd03996bf5f32b703a356a1de160823c8369ee4"
+BLOCK_2 = "0891763fa8a55f4a4c6cae9a6a79fd9d7d0f3fa2fea0ec9a8efda9c385f1517a"
 
 
 def configure_tools(root: Path) -> None:
@@ -60,6 +62,8 @@ def observation(submitter: str, observed_at: int) -> dict[str, Any]:
         "blake3": BLAKE3,
         "file_size_bytes": 5,
         "block_size": 4,
+        "block_hash_algorithm": "blake3",
+        "blocks": [BLOCK_1.upper(), BLOCK_2.upper()],
         "merkle_root": BLAKE3,
         "verification_state": "local_observed",
         "path": "file.raw",
@@ -141,6 +145,8 @@ def test_promote_community_verified_enforces_quorum() -> None:
         variant = record["variants"][0]
         assert variant["verification_state"] == "community_verified"
         assert len(variant["observations"]) == 2
+        assert variant["block_hash_algorithm"] == "blake3"
+        assert variant["blocks"] == [BLOCK_1, BLOCK_2]
         assert all("/reviewed/" in observation for observation in variant["observations"])
         assert not first.exists()
         assert report_observations.observation_report(quorum=2)["pending_observations"] == 0

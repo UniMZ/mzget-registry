@@ -99,6 +99,8 @@ def build_variant(observation: dict[str, Any], state: str, refs: list[str]) -> d
         "sha256": observation["sha256"].lower(),
         "blake3": lower_or_none(observation.get("blake3")),
         "block_size": observation.get("block_size"),
+        "block_hash_algorithm": lower_or_none(observation.get("block_hash_algorithm")),
+        "blocks": lower_blocks(observation.get("blocks")),
         "merkle_root": lower_or_none(observation.get("merkle_root")),
         "verification_state": state,
         "observations": refs,
@@ -109,6 +111,12 @@ def build_variant(observation: dict[str, Any], state: str, refs: list[str]) -> d
 def lower_or_none(value: Any) -> Any:
     if isinstance(value, str):
         return value.lower()
+    return value
+
+
+def lower_blocks(value: Any) -> Any:
+    if isinstance(value, list):
+        return [item.lower() if isinstance(item, str) else item for item in value]
     return value
 
 

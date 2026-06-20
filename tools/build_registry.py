@@ -134,6 +134,7 @@ def validate_observation(
     blake3 = observation.get("blake3")
     if blake3 is not None and not is_hex_digest(blake3, 64):
         raise SystemExit(f"observation for {key} has invalid blake3")
+    validate_block_hashes(observation, f"observation for {key}")
 
 
 def validate_variants(record: dict[str, Any]) -> None:
@@ -166,6 +167,25 @@ def validate_variants(record: dict[str, Any]) -> None:
             raise SystemExit(
                 f"file {record.get('file_accession')} variant {index} has invalid block_size"
             )
+        validate_block_hashes(
+            variant, f"file {record.get('file_accession')} variant {index}"
+        )
+
+
+def validate_block_hashes(record: dict[str, Any], label: str) -> None:
+    blocks = record.get("blocks")
+    if blocks is None:
+        return
+    if not isinstance(blocks, list):
+        raise SystemExit(f"{label} has non-array blocks")
+    if record.get("block_hash_algorithm") not in (None, "blake3"):
+        raise SystemExit(f"{label} has invalid block_hash_algorithm")
+    block_size = record.get("block_size")
+    if not isinstance(block_size, int) or block_size <= 0:
+        raise SystemExit(f"{label} has blocks but invalid block_size")
+    for index, block in enumerate(blocks):
+        if not is_hex_digest(block, 64):
+            raise SystemExit(f"{label} has invalid block hash at index {index}")
 
 
 def validate_strict_variant_conflicts(

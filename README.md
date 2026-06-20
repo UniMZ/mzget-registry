@@ -88,7 +88,7 @@ The dataset record then lists the file records needed for verification and downl
 
 File records are named from the original repository file name with a `.json` suffix, for example `sample.raw.json`. If a dataset contains duplicate file names, the importer appends a short `file_accession` suffix to avoid collisions.
 
-File records may include inline checksum variants. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
+File records may include inline checksum variants. Variants can store whole-file SHA-256/BLAKE3 values plus BLAKE3 block hashes, `block_size`, and `merkle_root`. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
 
 Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Reviewed observations are archived under `data/observations/reviewed/` and referenced by file variants. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write. `community_verified` promotion requires the configured quorum of distinct submitters.
 
