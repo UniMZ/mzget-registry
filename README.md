@@ -47,6 +47,13 @@ python3 tools/import_observations.py /tmp/observations.json
 python3 tools/build_registry.py
 ```
 
+Or write pending observation files directly from a local registry checkout:
+
+```bash
+mzget submit /path/to/mzget.lock.json --registry-dir .
+python3 tools/build_registry.py
+```
+
 After review, promote a pending observation into a checksum variant:
 
 ```bash
