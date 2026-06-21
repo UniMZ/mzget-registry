@@ -8,7 +8,7 @@
   },
   "dataset_lookup": {
     "bucket_rule": "first six accession characters, e.g. PXD000 for PXD000001",
-    "template": "datasets/{source_lower}/{bucket}/{accession}.json"
+    "template": "data/{source_lower}/{bucket}/{accession}/dataset.json"
   },
   "generated_at_unix_seconds": 1781873453,
   "name": "MzGet Registry",

@@ -1,0 +1,18 @@
+{
+  "accession": "PXD000001",
+  "file_count": 8,
+  "files": [
+    "data/pride/PXD000/PXD000001/files/PRIDE_Exp_Complete_Ac_22134.pride.mztab.gz.json",
+    "data/pride/PXD000/PXD000001/files/PRIDE_Exp_Complete_Ac_22134.pride.mgf.gz.json",
+    "data/pride/PXD000/PXD000001/files/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.mzXML.json",
+    "data/pride/PXD000/PXD000001/files/erwinia_carotovora.fasta.json",
+    "data/pride/PXD000/PXD000001/files/TMT_Erwinia_1uLSike_Top10HCD_isol2_45stepped_60min_01.raw.json",
+    "data/pride/PXD000/PXD000001/files/F063721.dat-mztab.txt.json",
+    "data/pride/PXD000/PXD000001/files/PRIDE_Exp_Complete_Ac_22134.xml.gz.json",
+    "data/pride/PXD000/PXD000001/files/F063721.dat.json"
+  ],
+  "schema_version": 1,
+  "source": "PRIDE",
+  "source_retrieved_at_unix_seconds": 1781873453,
+  "total_size_bytes": 514278049
+}
