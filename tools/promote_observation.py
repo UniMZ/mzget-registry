@@ -10,7 +10,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-PROMOTABLE_STATES = {"candidate", "community_verified", "conflict_candidate"}
+PROMOTABLE_STATES = {"verified", "conflict"}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -97,6 +97,7 @@ def archive_observations(paths: list[Path]) -> list[Path]:
 def build_variant(observation: dict[str, Any], state: str, refs: list[str]) -> dict[str, Any]:
     variant = {
         "sha256": observation["sha256"].lower(),
+        "checksum_source": observation.get("submitter") or "community",
         "blake3": lower_or_none(observation.get("blake3")),
         "block_size": observation.get("block_size"),
         "block_hash_algorithm": lower_or_none(observation.get("block_hash_algorithm")),
@@ -154,7 +155,7 @@ def quorum_paths(observation: dict[str, Any], quorum: int) -> list[Path]:
     submitters = independent_submitters(matches)
     if len(submitters) < quorum:
         raise SystemExit(
-            "community_verified requires at least "
+            "verified requires at least "
             f"{quorum} independent submitter(s); found {len(submitters)}"
         )
     return [path for path, _ in matches]
@@ -172,7 +173,7 @@ def promote_observation(
     variants = record.setdefault("variants", [])
     observation_paths = (
         quorum_paths(observation, quorum)
-        if state == "community_verified"
+        if state == "verified"
         else [path]
     )
     ref_paths = observation_paths if keep_pending else archive_observations(observation_paths)
@@ -202,7 +203,7 @@ def main() -> None:
     parser.add_argument(
         "--state",
         choices=sorted(PROMOTABLE_STATES),
-        default="candidate",
+        default="verified",
         help="reviewed variant state to create",
     )
     parser.add_argument(
@@ -214,7 +215,7 @@ def main() -> None:
         "--quorum",
         type=int,
         default=2,
-        help="minimum independent submitters required for community_verified",
+        help="minimum independent submitters required for verified",
     )
     parser.add_argument(
         "--keep-pending",

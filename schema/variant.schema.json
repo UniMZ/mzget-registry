@@ -10,6 +10,7 @@
     "dataset_accession": { "type": "string" },
     "file_accession": { "type": "string" },
     "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "checksum_source": { "type": ["string", "null"] },
     "blake3": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
     "block_size": { "type": ["integer", "null"], "minimum": 1 },
     "block_hash_algorithm": { "type": ["string", "null"], "enum": ["blake3", null] },
@@ -20,7 +21,7 @@
     "merkle_root": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
     "verification_state": {
       "type": "string",
-      "enum": ["official", "community_verified", "candidate", "conflict_candidate", "superseded", "historical"]
+      "enum": ["none", "verified", "conflict"]
     },
     "observations": { "type": "array" }
   },

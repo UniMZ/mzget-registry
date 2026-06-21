@@ -11,7 +11,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / "data"
-STRICT_VARIANT_STATES = {"official", "community_verified"}
+STRICT_VARIANT_STATES = {"verified"}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -74,12 +74,12 @@ def observation_report(quorum: int) -> dict[str, Any]:
         if trusted and sha256 in trusted:
             recommendation = "matches_trusted"
         elif trusted:
-            recommendation = "conflict_candidate"
+            recommendation = "conflict"
         submitters = independent_submitters(entries)
         if not trusted and len(submitters) >= quorum:
-            recommendation = "quorum_candidate"
+            recommendation = "verified"
         elif not trusted:
-            recommendation = "candidate"
+            recommendation = "pending"
 
         observed_times = [
             observation.get("observed_at_unix_seconds")

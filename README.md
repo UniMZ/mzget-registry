@@ -60,18 +60,18 @@ After review, promote a pending observation into a checksum variant:
 python3 tools/report_observations.py
 python3 tools/promote_observation.py \
   data/observations/pending/pride/PXD000/PXD000001/<file_accession>/<observation>.json \
-  --state candidate
+  --state verified
 python3 tools/build_registry.py
 ```
 
 Promotion moves reviewed observation files from `data/observations/pending/` to `data/observations/reviewed/` by default, so `report_observations.py` only lists observations still awaiting review. Use `--keep-pending` only when debugging a promotion locally.
 
-To promote a checksum to `community_verified`, use a quorum of independent submitters. The quorum count is based on distinct `submitter` values in matching pending observations:
+To promote a checksum to `verified`, use a quorum of independent submitters. The quorum count is based on distinct `submitter` values in matching pending observations:
 
 ```bash
 python3 tools/promote_observation.py \
   data/observations/pending/pride/PXD000/PXD000001/<file_accession>/<observation>.json \
-  --state community_verified \
+  --state verified \
   --quorum 2 \
   --update-existing
 ```
@@ -88,8 +88,8 @@ The dataset record then lists the file records needed for verification and downl
 
 File records are named from the original repository file name with a `.json` suffix, for example `sample.raw.json`. If a dataset contains duplicate file names, the importer appends a short `file_accession` suffix to avoid collisions.
 
-File records may include inline checksum variants. Variants can store whole-file SHA-256/BLAKE3 values plus BLAKE3 block hashes, `block_size`, and `merkle_root`. MzGet clients treat `official` and `community_verified` variants as strict verification inputs and ignore `candidate` or `conflict_candidate` variants for default acceptance.
+File records may include inline checksum variants. Variants can store whole-file SHA-256/BLAKE3 values plus BLAKE3 block hashes, `block_size`, and `merkle_root`. MzGet clients treat `verified` variants as accepted verification inputs. Official and community labels are stored as checksum sources, not variant states. `conflict` variants are published as candidate checksums: clients may accept a download that matches one conflict candidate, upload that observation to help resolve the conflict, and add a new conflict candidate only after repeated local downloads agree.
 
-Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Reviewed observations are archived under `data/observations/reviewed/` and referenced by file variants. Promotion from observations to `community_verified` variants is intentionally a reviewed registry change, not a client-side automatic write. `community_verified` promotion requires the configured quorum of distinct submitters.
+Pending observations are stored under `data/observations/pending/` and published read-only by Pages. Reviewed observations are archived under `data/observations/reviewed/` and referenced by file variants. Current states are `none`, `verified`, and `conflict`: no variant means `none`; one accepted checksum is `verified`; disagreeing checksums are `conflict` until a later independent observation matches one side.
 
-Validation rejects multiple current trusted variants (`official` or `community_verified`) for the same file. A pending observation that disagrees with an existing trusted variant must be explicitly marked `conflict_candidate`.
+Validation rejects multiple current `verified` variants for the same file. A pending observation that disagrees with an existing `verified` variant must be explicitly marked `conflict`.

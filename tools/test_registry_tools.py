@@ -99,17 +99,17 @@ def test_report_quorum_uses_distinct_submitters() -> None:
 
         report = report_observations.observation_report(quorum=2)
         group = report["groups"][0]
-        assert group["recommendation"] == "candidate"
+        assert group["recommendation"] == "pending"
         assert group["independent_submitters"] == 1
 
         write_json(second, observation("bob", 2))
         report = report_observations.observation_report(quorum=2)
         group = report["groups"][0]
-        assert group["recommendation"] == "quorum_candidate"
+        assert group["recommendation"] == "verified"
         assert group["independent_submitters"] == 2
 
 
-def test_promote_community_verified_enforces_quorum() -> None:
+def test_promote_verified_enforces_quorum() -> None:
     with tempfile.TemporaryDirectory(prefix="mzget-registry-tools-") as tmp:
         root = Path(tmp)
         configure_tools(root)
@@ -120,7 +120,7 @@ def test_promote_community_verified_enforces_quorum() -> None:
             with redirect_stdout(StringIO()):
                 promote_observation.promote_observation(
                     first,
-                    "community_verified",
+                    "verified",
                     update_existing=False,
                     quorum=2,
                     keep_pending=False,
@@ -128,13 +128,13 @@ def test_promote_community_verified_enforces_quorum() -> None:
         except SystemExit as error:
             assert "requires at least 2" in str(error)
         else:
-            raise AssertionError("community_verified promotion passed without quorum")
+            raise AssertionError("verified promotion passed without quorum")
 
         write_observation(root, "bob", 2)
         with redirect_stdout(StringIO()):
             promote_observation.promote_observation(
                 first,
-                "community_verified",
+                "verified",
                 update_existing=False,
                 quorum=2,
                 keep_pending=False,
@@ -143,7 +143,8 @@ def test_promote_community_verified_enforces_quorum() -> None:
         record = read_json(file_record)
         assert len(record["variants"]) == 1
         variant = record["variants"][0]
-        assert variant["verification_state"] == "community_verified"
+        assert variant["verification_state"] == "verified"
+        assert variant["checksum_source"] == "alice"
         assert len(variant["observations"]) == 2
         assert variant["block_hash_algorithm"] == "blake3"
         assert variant["blocks"] == [BLOCK_1, BLOCK_2]
@@ -154,7 +155,7 @@ def test_promote_community_verified_enforces_quorum() -> None:
 
 def main() -> None:
     test_report_quorum_uses_distinct_submitters()
-    test_promote_community_verified_enforces_quorum()
+    test_promote_verified_enforces_quorum()
     print("registry tool tests passed")
 
 

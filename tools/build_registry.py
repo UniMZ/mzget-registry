@@ -15,14 +15,11 @@ DATA = ROOT / "data"
 OUTPUT = Path(os.environ.get("MZGET_REGISTRY_OUT", str(ROOT / "public")))
 BASE_URL = "https://registry.mzget.unimz.org"
 VARIANT_STATES = {
-    "official",
-    "community_verified",
-    "candidate",
-    "conflict_candidate",
-    "superseded",
-    "historical",
+    "none",
+    "verified",
+    "conflict",
 }
-STRICT_VARIANT_STATES = {"official", "community_verified"}
+STRICT_VARIANT_STATES = {"verified"}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -127,9 +124,9 @@ def validate_observation(
     strict_sha256s = strict_sha256_by_file.get(key, set())
     if strict_sha256s and observed_sha256 not in strict_sha256s:
         state = observation.get("verification_state")
-        if state != "conflict_candidate":
+        if state != "conflict":
             raise SystemExit(
-                f"observation for {key} conflicts with trusted variant and must be marked conflict_candidate"
+                f"observation for {key} conflicts with verified variant and must be marked conflict"
             )
     blake3 = observation.get("blake3")
     if blake3 is not None and not is_hex_digest(blake3, 64):
@@ -201,7 +198,7 @@ def validate_strict_variant_conflicts(
         }
         if len(strict_sha256s) > 1:
             raise SystemExit(
-                f"file {key} has conflicting official/community_verified sha256 variants"
+                f"file {key} has conflicting verified sha256 variants"
             )
         if strict_sha256s:
             strict_sha256_by_file[key] = strict_sha256s
