@@ -2,7 +2,7 @@
 
 Community integrity registry for reliable downloads of public mass spectrometry datasets.
 
-This repository is managed by `mzget-registry-server` as the GitHub Pages publication branch. The JSON records under `datasets/`, `files/`, and `observations/` are both the canonical registry data and the public static query paths. There is no duplicated `data/` tree, no GitHub Actions build step, and no maintenance script in this repository.
+This repository is managed by `mzget-registry-server` on `main`, with GitHub Pages configured to publish from the repository root. The JSON records under `datasets/`, `files/`, and `observations/` are both the canonical registry data and the public static query paths. There is no duplicated `data/` tree, no GitHub Actions build step, and no maintenance script in this repository.
 
 Public endpoint:
 
@@ -35,17 +35,17 @@ The standard write path is:
 1. `mzget` downloads and verifies user files.
 2. `mzget` submits observations to the management API.
 3. `mzget-registry-server serve` validates the observations.
-4. The server updates `datasets/`, `files/`, and `observations/`, resolves registry state, regenerates `latest.json` and `index.html`, commits the result, and pushes the configured GitHub Pages branch.
-5. GitHub Pages serves the pushed branch directly from the repository root.
+4. The server updates `datasets/`, `files/`, and `observations/`, resolves registry state, regenerates `latest.json` and `index.html`, commits the result, and pushes `main`.
+5. GitHub Pages serves `main` directly from the repository root.
 
-The server checkout must be a clean checkout of the Pages branch with a push-capable `origin` remote.
+The server checkout must be a clean checkout of `main` with a push-capable `origin` remote.
 
 ```bash
 mzget-registry-server serve \
   --registry-dir /srv/mzget-registry \
   --bind 127.0.0.1:8787 \
   --publish-remote origin \
-  --publish-branch gh-pages
+  --publish-branch main
 ```
 
 Local administrator commands are provided by the same server binary:
